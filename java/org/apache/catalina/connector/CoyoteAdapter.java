@@ -592,6 +592,7 @@ public class CoyoteAdapter implements Adapter {
                 res.setStatus(404);
                 res.setMessage("Not found");
             }
+            // 记录access日志
             connector.getService().getContainer().logAccess(
                     request, response, 0, true);
             return false;
@@ -610,9 +611,11 @@ public class CoyoteAdapter implements Adapter {
 
             // URI decoding
             // %xx decoding of the URL
+            // 对URI解码，将%转移符解码
             try {
                 req.getURLDecoder().convert(decodedURI, false);
             } catch (IOException ioe) {
+                // 如果解码失败则400
                 res.setStatus(400);
                 res.setMessage("Invalid URI: " + ioe.getMessage());
                 connector.getService().getContainer().logAccess(
@@ -620,6 +623,7 @@ public class CoyoteAdapter implements Adapter {
                 return false;
             }
             // Normalization
+            // 检验解析出来的数据
             if (!normalize(req.decodedURI())) {
                 res.setStatus(400);
                 res.setMessage("Invalid URI");
@@ -645,6 +649,7 @@ public class CoyoteAdapter implements Adapter {
              * - req.decodedURI() has been set to the decoded, normalized form
              *   of req.requestURI()
              */
+            // 转为char流
             decodedURI.toChars();
             // Remove all path parameters; any needed path parameter should be set
             // using the request object rather than passing it in the URL
@@ -657,6 +662,7 @@ public class CoyoteAdapter implements Adapter {
         }
 
         // Request mapping.
+        // 获取serverName
         MessageBytes serverName;
         if (connector.getUseIPVHosts()) {
             serverName = req.localName();
@@ -676,11 +682,13 @@ public class CoyoteAdapter implements Adapter {
 
         while (mapRequired) {
             // This will map the the latest version by default
+            // 解析url对应的路径
             connector.getService().getMapper().map(serverName, decodedURI,
                     version, request.getMappingData());
 
             // If there is no context at this point, it is likely no ROOT context
             // has been deployed
+            // 如果没找到对应的路径，返回404
             if (request.getContext() == null) {
                 res.setStatus(404);
                 res.setMessage("Not found");
@@ -769,6 +777,7 @@ public class CoyoteAdapter implements Adapter {
         }
 
         // Possible redirect
+        // 重定向
         MessageBytes redirectPathMB = request.getMappingData().redirectPath;
         if (!redirectPathMB.isNull()) {
             String redirectPath = URLEncoder.DEFAULT.encode(
@@ -819,6 +828,7 @@ public class CoyoteAdapter implements Adapter {
             return false;
         }
 
+        // 校验授权
         doConnectorAuthenticationAuthorization(req, request);
 
         return true;
@@ -876,6 +886,7 @@ public class CoyoteAdapter implements Adapter {
      * @param req The Coyote request object
      * @param request The Servlet request object
      */
+    // 解析path路径上的参数  /path;name=value;name2=value2/
     protected void parsePathParameters(org.apache.coyote.Request req,
             Request request) {
 
@@ -948,6 +959,7 @@ public class CoyoteAdapter implements Adapter {
                 if (equals > -1) {
                     String name = pv.substring(0, equals);
                     String value = pv.substring(equals + 1);
+                    // Request的参数，实际添加到coyoteRequest了，底层实际上是个map
                     request.addPathParameter(name, value);
                     if (log.isDebugEnabled()) {
                         log.debug(sm.getString("coyoteAdapter.debug", "equals",
@@ -1004,21 +1016,26 @@ public class CoyoteAdapter implements Adapter {
         }
 
         // Parse session id from cookies
+        // 从cookie中解析sessionId
         ServerCookies serverCookies = request.getServerCookies();
         int count = serverCookies.getCookieCount();
         if (count <= 0) {
             return;
         }
 
+        // 获取sessionName，默认是JSESSIONID
         String sessionCookieName = SessionConfig.getSessionCookieName(context);
 
+        // 遍历cookie解析对应的session
         for (int i = 0; i < count; i++) {
             ServerCookie scookie = serverCookies.getCookie(i);
             if (scookie.getName().equals(sessionCookieName)) {
                 // Override anything requested in the URL
                 if (!request.isRequestedSessionIdFromCookie()) {
                     // Accept only the first session id cookie
+                    // 转为字符流
                     convertMB(scookie.getValue());
+                    // set sessionId
                     request.setRequestedSessionId
                         (scookie.getValue().toString());
                     request.setRequestedSessionCookie(true);

@@ -36,6 +36,10 @@ import java.util.Set;
  * @author Craig R. McClanahan
  * @author Peter Donald
  */
+// pipeline是个valve责任链的管理器，包括添加，删除，以及invoke
+    // invoker触发后会继续调用下一个valve
+    // 这个命名是非常非常形象的，pipeline是管道，而valve是阀门
+    // 一个管道有多个阀门
 public interface Pipeline extends Contained {
 
     /**

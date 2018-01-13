@@ -442,6 +442,7 @@ public class StandardContext extends ContainerBase
     /**
      * The MIME mappings for this web application, keyed by extension.
      */
+    // 缓存所有的Mime类型
     private Map<String, String> mimeMappings = new HashMap<>();
 
 
@@ -531,6 +532,7 @@ public class StandardContext extends ContainerBase
      * The servlet mappings for this web application, keyed by
      * matching pattern.
      */
+    // 保存servlet的url映射关系
     private Map<String, String> servletMappings = new HashMap<>();
 
     private final Object servletMappingsLock = new Object();
@@ -578,6 +580,7 @@ public class StandardContext extends ContainerBase
     /**
      * The welcome files for this application.
      */
+    // 保存所有的welcomeFile的文件名
     private String welcomeFiles[] = new String[0];
 
     private final Object welcomeFilesLock = new Object();
@@ -3104,6 +3107,7 @@ public class StandardContext extends ContainerBase
             }
             servletMappings.put(adjustedPattern, name);
         }
+        // 找到child，也添加这个pattern
         Wrapper wrapper = (Wrapper) findChild(name);
         wrapper.addMapping(adjustedPattern);
 
@@ -5951,6 +5955,9 @@ public class StandardContext extends ContainerBase
             String hostName = null;
             String engineName = null;
             String hostWorkDir = null;
+            // context.parent -> Host
+            // Host.parent -> Engine
+            // Engine.parent -> Service
             Container parentHost = getParent();
             if (parentHost != null) {
                 hostName = parentHost.getName();
