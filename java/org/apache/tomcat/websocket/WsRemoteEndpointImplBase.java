@@ -16,6 +16,13 @@
  */
 package org.apache.tomcat.websocket;
 
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+import org.apache.tomcat.util.buf.Utf8Encoder;
+import org.apache.tomcat.util.res.StringManager;
+
+import javax.websocket.*;
+import javax.websocket.CloseReason.CloseCodes;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
@@ -32,21 +39,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.DeploymentException;
-import javax.websocket.EncodeException;
-import javax.websocket.Encoder;
-import javax.websocket.EndpointConfig;
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.SendHandler;
-import javax.websocket.SendResult;
-
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
-import org.apache.tomcat.util.buf.Utf8Encoder;
-import org.apache.tomcat.util.res.StringManager;
 
 public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
 
@@ -281,6 +273,7 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
         List<MessagePart> messageParts = new ArrayList<>();
         messageParts.add(new MessagePart(last, 0, opCode, payload, bsh, bsh, timeoutExpiry));
 
+        // messagePart预处理
         messageParts = transformation.sendMessagePart(messageParts);
 
         // Some extensions/transformations may buffer messages so it is possible
@@ -330,7 +323,7 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
 
     void startMessage(byte opCode, ByteBuffer payload, boolean last,
             SendHandler handler) {
-
+        // 更新session的时间戳
         wsSession.updateLastActive();
 
         List<MessagePart> messageParts = new ArrayList<>();
@@ -425,6 +418,7 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
                     sm.getString("wsRemoteEndpoint.closed"));
         }
 
+        // flush操作，将fragmented，text刷出到nextFragmented，nextText
         if (Constants.INTERNAL_OPCODE_FLUSH == mp.getOpCode()) {
             nextFragmented = fragmented;
             nextText = text;
@@ -858,9 +852,12 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
             while (headerBuffer.hasRemaining() && outputBuffer.hasRemaining()) {
                 outputBuffer.put(headerBuffer.get());
             }
+
+            // 这种情况就是headerBuffer的长度大于outputBuffer长度
             if (headerBuffer.hasRemaining()) {
                 // Still more headers to write, need to flush
                 outputBuffer.flip();
+                // 写出
                 endpoint.doWrite(this, blockingWriteTimeoutExpiry, outputBuffer);
                 return;
             }
@@ -871,6 +868,7 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
             int outputSpace = outputBuffer.remaining();
             int toWrite = payloadLeft;
 
+            // 如果payload载体的长度大于输出buffer的长度，需要临时缩小payload的长度
             if (payloadLeft > outputSpace) {
                 toWrite = outputSpace;
                 // Temporarily reduce the limit
@@ -890,11 +888,13 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
                 }
             }
 
+            // 如果payload载体的长度大于输出buffer的长度，需要还原payload的长度
             if (payloadLeft > outputSpace) {
                 // Restore the original limit
                 payload.limit(payloadLimit);
                 // Still more data to write, need to flush
                 outputBuffer.flip();
+                // 写出
                 endpoint.doWrite(this, blockingWriteTimeoutExpiry, outputBuffer);
                 return;
             }
@@ -1004,6 +1004,7 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
                 flush();
                 remaining = buffer.remaining();
             }
+            // 以防万一
             buffer.put(b, off + written, len - written);
         }
 

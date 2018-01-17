@@ -16,21 +16,20 @@
  */
 package org.apache.tomcat.websocket.server;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.nio.ByteBuffer;
-import java.util.concurrent.RejectedExecutionException;
-
-import javax.websocket.SendHandler;
-import javax.websocket.SendResult;
-
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.net.SocketWrapperBase;
 import org.apache.tomcat.util.res.StringManager;
 import org.apache.tomcat.websocket.Transformation;
 import org.apache.tomcat.websocket.WsRemoteEndpointImplBase;
+
+import javax.websocket.SendHandler;
+import javax.websocket.SendResult;
+import java.io.EOFException;
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * This is the server side {@link javax.websocket.RemoteEndpoint} implementation
@@ -81,6 +80,7 @@ public class WsRemoteEndpointImplServer extends WsRemoteEndpointImplBase {
                     handler.onResult(sr);
                     return;
                 }
+                // timeout处理原来如此精细！这个timeout分为两部分：messagePart预处理消费的时间和socket发送
                 socketWrapper.setWriteTimeout(timeout);
                 try {
                     socketWrapper.write(true, buffer);

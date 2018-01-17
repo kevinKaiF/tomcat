@@ -16,6 +16,9 @@
  */
 package org.apache.catalina.startup;
 
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,9 +26,6 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.Properties;
-
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
 
 
 /**
@@ -39,7 +39,7 @@ public class CatalinaProperties {
 
     private static Properties properties = null;
 
-
+    // 静态初始化加载
     static {
         loadProperties();
     }
@@ -63,6 +63,7 @@ public class CatalinaProperties {
         String fileName = "catalina.properties";
 
         try {
+            // 先从启动参数中查找catalina.config是否存在
             String configUrl = System.getProperty("catalina.config");
             if (configUrl != null) {
                 if (configUrl.indexOf('/') == -1) {
@@ -76,6 +77,7 @@ public class CatalinaProperties {
             handleThrowable(t);
         }
 
+        // 如果-D参数中没有配置，则重catalina.base目录下查找配置文件
         if (is == null) {
             try {
                 File home = new File(Bootstrap.getCatalinaBase());
@@ -87,6 +89,7 @@ public class CatalinaProperties {
             }
         }
 
+        // 如果配置文件还没有，则从jar中查找
         if (is == null) {
             try {
                 is = CatalinaProperties.class.getResourceAsStream
@@ -120,6 +123,7 @@ public class CatalinaProperties {
         }
 
         // Register the properties as system properties
+        // 遍历properties中的KV,注册到System
         Enumeration<?> enumeration = properties.propertyNames();
         while (enumeration.hasMoreElements()) {
             String name = (String) enumeration.nextElement();

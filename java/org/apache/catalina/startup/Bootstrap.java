@@ -16,6 +16,13 @@
  */
 package org.apache.catalina.startup;
 
+import org.apache.catalina.Globals;
+import org.apache.catalina.security.SecurityClassLoad;
+import org.apache.catalina.startup.ClassLoaderFactory.Repository;
+import org.apache.catalina.startup.ClassLoaderFactory.RepositoryType;
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -26,13 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.catalina.Globals;
-import org.apache.catalina.security.SecurityClassLoad;
-import org.apache.catalina.startup.ClassLoaderFactory.Repository;
-import org.apache.catalina.startup.ClassLoaderFactory.RepositoryType;
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
 
 
 /**
@@ -56,7 +56,10 @@ public final class Bootstrap {
      */
     private static Bootstrap daemon = null;
 
+    // 默认情况下两个目录是一样的
+    // catalina.base
     private static final File catalinaBaseFile;
+    // catalina.home
     private static final File catalinaHomeFile;
 
     private static final Pattern PATH_PATTERN = Pattern.compile("(\".*?\")|(([^,])*)");
@@ -86,6 +89,7 @@ public final class Bootstrap {
             if (bootstrapJar.exists()) {
                 File f = new File(userDir, "..");
                 try {
+                    // 获取标准的路径
                     homeFile = f.getCanonicalFile();
                 } catch (IOException ioe) {
                     homeFile = f.getAbsoluteFile();
@@ -130,6 +134,7 @@ public final class Bootstrap {
     /**
      * Daemon reference.
      */
+    // org.apache.catalina.startup.Catalina实例
     private Object catalinaDaemon = null;
 
 
@@ -143,12 +148,16 @@ public final class Bootstrap {
 
     private void initClassLoaders() {
         try {
+            // common.loader=${catalina.base}/lib,${catalina.base}/lib/*.jar,${catalina.home}/lib,${catalina.home}/lib/*.jar
             commonLoader = createClassLoader("common", null);
             if( commonLoader == null ) {
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader=this.getClass().getClassLoader();
             }
+
+            // 默认server.loader是空的，所以catalinaLoader是commonLoader
             catalinaLoader = createClassLoader("server", commonLoader);
+            // 默认shared.loader是空的，所以sharedLoader是commonLoader
             sharedLoader = createClassLoader("shared", commonLoader);
         } catch (Throwable t) {
             handleThrowable(t);
@@ -165,15 +174,18 @@ public final class Bootstrap {
         if ((value == null) || (value.equals("")))
             return parent;
 
+        // 替换catalina.home,catalina.base的占位符
         value = replace(value);
 
         List<Repository> repositories = new ArrayList<>();
 
+        // 按逗号 “,”解析路径
         String[] repositoryPaths = getPaths(value);
 
         for (String repository : repositoryPaths) {
             // Check for a JAR URL repository
             try {
+                // 直接按url解析，RepositoryType.URL
                 @SuppressWarnings("unused")
                 URL url = new URL(repository);
                 repositories.add(
@@ -184,15 +196,18 @@ public final class Bootstrap {
             }
 
             // Local repository
+            // 如果是*.jar，获取父级目录，RepositoryType.GLOB
             if (repository.endsWith("*.jar")) {
                 repository = repository.substring
                     (0, repository.length() - "*.jar".length());
                 repositories.add(
                         new Repository(repository, RepositoryType.GLOB));
+                // 如果是.jar，RepositoryType.JAR
             } else if (repository.endsWith(".jar")) {
                 repositories.add(
                         new Repository(repository, RepositoryType.JAR));
             } else {
+                // 如果是目录，RepositoryType.DIR
                 repositories.add(
                         new Repository(repository, RepositoryType.DIR));
             }
@@ -253,9 +268,9 @@ public final class Bootstrap {
      * @throws Exception Fatal initialization error
      */
     public void init() throws Exception {
-
+        // 初始化classloader
         initClassLoaders();
-
+        // 将当前线程的类加载器设置为catalinaLoader
         Thread.currentThread().setContextClassLoader(catalinaLoader);
 
         SecurityClassLoad.securityClassLoad(catalinaLoader);
@@ -263,6 +278,7 @@ public final class Bootstrap {
         // Load our startup class and call its process() method
         if (log.isDebugEnabled())
             log.debug("Loading startup class");
+        // 这里是使用自定义的catalinaLoader来加载Catalina
         Class<?> startupClass =
             catalinaLoader.loadClass
             ("org.apache.catalina.startup.Catalina");
@@ -276,10 +292,12 @@ public final class Bootstrap {
         paramTypes[0] = Class.forName("java.lang.ClassLoader");
         Object paramValues[] = new Object[1];
         paramValues[0] = sharedLoader;
+        // 反射创建org.apache.catalina.startup.Catalina，并调用setParentClassLoader
+        // 设置sharedLoader作为Catalina的parentClassLoader
         Method method =
             startupInstance.getClass().getMethod(methodName, paramTypes);
         method.invoke(startupInstance, paramValues);
-
+        // org.apache.catalina.startup.Catalina实例
         catalinaDaemon = startupInstance;
 
     }
@@ -288,6 +306,7 @@ public final class Bootstrap {
     /**
      * Load daemon.
      */
+    // 反射调用Catalina的load方法
     private void load(String[] arguments)
         throws Exception {
 
@@ -316,6 +335,7 @@ public final class Bootstrap {
     /**
      * getServer() for configtest
      */
+    // 反射调用getServer
     private Object getServer() throws Exception {
 
         String methodName = "getServer";
@@ -336,8 +356,9 @@ public final class Bootstrap {
      */
     public void init(String[] arguments)
         throws Exception {
-
+        // 初始化Catalina
         init();
+        // 调用Catalina.load
         load(arguments);
 
     }
@@ -506,6 +527,7 @@ public final class Bootstrap {
             }
         } catch (Throwable t) {
             // Unwrap the Exception for clearer error reporting
+            // 如果是InvocationTargetException异常，需要解析getCause
             if (t instanceof InvocationTargetException &&
                     t.getCause() != null) {
                 t = t.getCause();

@@ -16,6 +16,17 @@
  */
 package org.apache.coyote.http2;
 
+import org.apache.coyote.*;
+import org.apache.coyote.http2.HpackDecoder.HeaderEmitter;
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+import org.apache.tomcat.util.buf.ByteChunk;
+import org.apache.tomcat.util.buf.MessageBytes;
+import org.apache.tomcat.util.http.FastHttpDateFormat;
+import org.apache.tomcat.util.http.MimeHeaders;
+import org.apache.tomcat.util.net.ApplicationBufferHandler;
+import org.apache.tomcat.util.res.StringManager;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -27,22 +38,6 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
-
-import org.apache.coyote.ActionCode;
-import org.apache.coyote.CloseNowException;
-import org.apache.coyote.InputBuffer;
-import org.apache.coyote.OutputBuffer;
-import org.apache.coyote.Request;
-import org.apache.coyote.Response;
-import org.apache.coyote.http2.HpackDecoder.HeaderEmitter;
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
-import org.apache.tomcat.util.buf.ByteChunk;
-import org.apache.tomcat.util.buf.MessageBytes;
-import org.apache.tomcat.util.http.FastHttpDateFormat;
-import org.apache.tomcat.util.http.MimeHeaders;
-import org.apache.tomcat.util.net.ApplicationBufferHandler;
-import org.apache.tomcat.util.res.StringManager;
 
 class Stream extends AbstractStream implements HeaderEmitter {
 
@@ -736,7 +731,9 @@ class Stream extends AbstractStream implements HeaderEmitter {
                 int thisTime = Math.min(buffer.remaining(), chunk.remaining());
                 chunk.limit(chunk.position() + thisTime);
                 buffer.put(chunk);
+                // 还原limit
                 chunk.limit(chunkLimit);
+                // offset表示已读取的字节数目
                 offset += thisTime;
                 if (chunk.remaining() > 0 && !buffer.hasRemaining()) {
                     // Only flush if we have more data to write and the buffer

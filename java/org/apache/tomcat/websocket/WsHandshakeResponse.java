@@ -16,16 +16,17 @@
  */
 package org.apache.tomcat.websocket;
 
+import org.apache.tomcat.util.collections.CaseInsensitiveKeyMap;
+
+import javax.websocket.HandshakeResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.websocket.HandshakeResponse;
-
-import org.apache.tomcat.util.collections.CaseInsensitiveKeyMap;
-
 /**
+ * 握手只有消息头
+ *
  * Represents the response to a WebSocket handshake.
  */
 public class WsHandshakeResponse implements HandshakeResponse {

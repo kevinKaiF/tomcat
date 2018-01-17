@@ -16,6 +16,9 @@
  */
 package org.apache.catalina.startup;
 
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -27,9 +30,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
 
 /**
  * <p>Utility class for building class loaders for Catalina.  The factory
@@ -161,6 +161,7 @@ public final class ClassLoaderFactory {
         if (repositories != null) {
             for (Repository repository : repositories)  {
                 if (repository.getType() == RepositoryType.URL) {
+                    // 将!/转义%21/
                     URL url = buildClassLoaderUrl(repository.getLocation());
                     if (log.isDebugEnabled())
                         log.debug("  Including URL " + url);
@@ -171,6 +172,7 @@ public final class ClassLoaderFactory {
                     if (!validateFile(directory, RepositoryType.DIR)) {
                         continue;
                     }
+                    // 将DIR目录转为URL
                     URL url = buildClassLoaderUrl(directory);
                     if (log.isDebugEnabled())
                         log.debug("  Including directory " + url);
@@ -198,6 +200,7 @@ public final class ClassLoaderFactory {
                     if (filenames == null) {
                         continue;
                     }
+                    // 遍历文件，查找.jar文件
                     for (int j = 0; j < filenames.length; j++) {
                         String filename = filenames[j].toLowerCase(Locale.ENGLISH);
                         if (!filename.endsWith(".jar"))
@@ -217,6 +220,7 @@ public final class ClassLoaderFactory {
             }
         }
 
+        // 将所有的仓库转为URL
         // Construct the class loader itself
         final URL[] array = set.toArray(new URL[set.size()]);
         if (log.isDebugEnabled())
@@ -224,6 +228,7 @@ public final class ClassLoaderFactory {
                 log.debug("  location " + i + " is " + array[i]);
             }
 
+        // 转为URLClassLoader
         return AccessController.doPrivileged(
                 new PrivilegedAction<URLClassLoader>() {
                     @Override

@@ -16,13 +16,14 @@
  */
 package org.apache.tomcat.websocket;
 
+import javax.websocket.Extension;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import javax.websocket.Extension;
-
 /**
+ * 内部transform转换
+ *
  * The internal representation of the transformation that a WebSocket extension
  * performs on a message.
  */
