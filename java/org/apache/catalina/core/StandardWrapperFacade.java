@@ -30,6 +30,7 @@ import javax.servlet.ServletContext;
  *
  * @author Remy Maucherat
  */
+// standardWrapper的门面
 public final class StandardWrapperFacade
     implements ServletConfig {
 

@@ -992,6 +992,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
         // Stop our child containers, if any
         Container children[] = findChildren();
+        // 使用future的方式是为了得知任务是否执行成功
         List<Future<Void>> results = new ArrayList<>();
         for (int i = 0; i < children.length; i++) {
             results.add(startStopExecutor.submit(new StopChild(children[i])));

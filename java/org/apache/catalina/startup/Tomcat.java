@@ -301,6 +301,7 @@ public class Tomcat {
                                       String servletName,
                                       String servletClass) {
         // will do class for name and set init params
+        // 创建standardWrapper
         Wrapper sw = ctx.createWrapper();
         sw.setServletClass(servletClass);
         sw.setName(servletName);
@@ -425,6 +426,7 @@ public class Tomcat {
      * @return The connector object
      */
     public Connector getConnector() {
+        // 一个service有多个connector
         Service service = getService();
         if (service.findConnectors().length > 0) {
             return service.findConnectors()[0];
@@ -487,6 +489,7 @@ public class Tomcat {
     }
 
     public Host getHost() {
+        // engine下有多个host
         Engine engine = getEngine();
         if (engine.findChildren().length > 0) {
             return (Host) engine.findChildren()[0];
@@ -503,6 +506,8 @@ public class Tomcat {
      * @return The engine
      */
     public Engine getEngine() {
+        // 获取第一个service
+        // 一个service有一个engine
         Service service = getServer().findServices()[0];
         if (service.getContainer() != null) {
             return service.getContainer();
@@ -511,6 +516,7 @@ public class Tomcat {
         engine.setName( "Tomcat" );
         engine.setDefaultHost(hostname);
         engine.setRealm(createDefaultRealm());
+        // service的container就是Engine，默认是StandardEngine
         service.setContainer(engine);
         return engine;
     }
@@ -521,7 +527,8 @@ public class Tomcat {
      * @return The Server
      */
     public Server getServer() {
-
+        // server -> service
+        // 一个server可以有多个service
         if (server != null) {
             return server;
         }
@@ -895,12 +902,15 @@ public class Tomcat {
      * @param ctx   The context to set the defaults for
      */
     public static void initWebappDefaults(Context ctx) {
+        // context对应一个servlet应用程序，但是这个应用程序可能有多个servlet
         // Default servlet
+        // 作为child,添加DefaultServlet到ctx
         Wrapper servlet = addServlet(
                 ctx, "default", "org.apache.catalina.servlets.DefaultServlet");
         servlet.setLoadOnStartup(1);
         servlet.setOverridable(true);
 
+        // 作为child,添加JspServlet到ctx
         // JSP servlet (by class name - to avoid loading all deps)
         servlet = addServlet(
                 ctx, "jsp", "org.apache.jasper.servlet.JspServlet");
